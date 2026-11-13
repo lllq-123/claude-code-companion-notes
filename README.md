@@ -119,13 +119,13 @@ Claude Code 旁边有安全分类器在看对话，觉得有风险，就把这�
 
 官方的[环境变量说明](https://code.claude.com/docs/en/env-vars)里还有一个 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK`，写的是跟 `switchModelsOnFlag: false` 管同一件事。我们家没设它，这篇也不推荐：
 
-- 有人在官方仓库报告（[#83043](https://github.com/anthropics/claude-code/issues/83043)，2.1.220 版）：设了它，反而会打开另一条不提示就换模型的路，正好跟它的本意相反。这个 issue 在 2026 年 9 月 6 日被标成 stale（长期没人跟进）关掉了，没有说修没修。
+- 有人在官方仓库报告（[#83043](https://github.com/anthropics/claude-code/issues/83043)）：根据 2.1.220 的代码分析，设了它，可能让另一条不提示就换模型的路满足触发条件，正好跟它的本意相反。作者是读代码看出来的，没有观察到它真的触发过。这个 issue 在 2026 年 9 月 6 日因为长期没人跟进被自动关掉了，没有说修没修。
 - 我们在 2.1.321 的假服务器上把它和另外两项一起设过，没看到换模型。但那条路可能要真服务器才会触发，假服务器测不出来；新版里还有没有这个问题，我们没查。
 - 另一边，也有人反馈只设 `switchModelsOnFlag: false` 还是被换了模型（[#103106](https://github.com/anthropics/claude-code/issues/103106)，官方还没回复）。
 
 两边都没有定论。我们选了官方设置说明里的那个字段，环境变量这个不设。你已经设了的，留不留自己判断。
 
-不设它，看得见的区别在终端里：被拦的时候会弹一个框让你选，见[第 3 节](#3-关掉以后被拦会看到什么)。
+不设它，看得见的区别可能在终端里：有备用模型可换的时候，被拦以后多半会弹一个框问你，见[第 3 节](#3-关掉以后被拦会看到什么)。
 
 ### 改哪个文件
 
@@ -245,7 +245,7 @@ Try rephrasing the request in a new session or change your model.
 
 **SDK**：官方文档写的是，被拦的时候，结果消息的 `stop_reason` 是 `"refusal"`，通常 `subtype` 是 `"success"`、`is_error` 是 `true`；TypeScript 还会收到 `model_refusal_no_fallback` 这样的 system 消息（换了模型的话是 `model_refusal_fallback`）。这部分我们没在 SDK 里实跑。
 
-**终端**：只设这两项的时候，按官方文档，被拦以后终端会停下来，弹一个框让你选：换个模型接着聊，还是改了提示词再发（`/config` 里那一项叫 Ask each time，每次先问，说的就是这个）。⚠️ 框里有换模型的选项，看清楚再选，别顺手按回车；不想换模型，就选改提示词的那一项。这个框我们没在 2.1.321 上实测过。
+**终端**：官方对 `switchModelsOnFlag: false` 的说明是，有备用模型可换的时候，被拦以后终端会先停下来问你：换个模型接着聊，还是改了提示词再发（`/config` 里那一项叫 Ask each time，每次先问，说的就是这个）。我们预计再加上关重试那一项也还是这样，但这个组合我们没实测。⚠️ 要是弹了框，框里有换模型的选项，看清楚再选，别顺手按回车；不想换模型，就选改提示词的那一项。
 
 我们实测过的是三项都设的时候：不弹选择框，直接显示同样的报错，只是最后一句换成了：
 
@@ -364,7 +364,7 @@ Double press esc to edit your last message, or try a different model with /model
 **没测的**
 
 - macOS 和 Windows。
-- 只设两项时的 `-p` 纯文本和终端。官方文档说 `-p` 直接报错、终端会弹选择框，我们没在 2.1.321 上实测。
+- 只设两项时的 `-p` 纯文本和终端。官方对 `switchModelsOnFlag: false` 的说明是 `-p` 直接报错、终端在有备用模型时先问你；加上关重试那一项的组合，我们没在 2.1.321 上实测。
 - 第三项 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK` 在新版里会不会像 [#83043](https://github.com/anthropics/claude-code/issues/83043) 说的那样，打开另一条不提示就换模型的路。假服务器测不到这一条。
 - 终端里的 `claude --resume`。它读的是同一份存盘，按道理是一样的，但我们没单独测。
 - 用订阅账号登录时，报错文字会不会不一样（我们测的是 API key 计费的方式）。
