@@ -6,13 +6,13 @@
 
 > ### ⚠️ 先说清楚三件事
 >
-> 1. **这三项设置只管被拦以后的事。** 它们不会关掉任何安全检查：被拦的次数不会因此变少，误拦也照样会发生。这篇也不教怎么让被拦的内容「过审」。唯一的变化是：被拦以后，Claude Code 不再自己重试、自己换模型，停下来等你决定。
-> 2. **三项里有一项是官方文档没写的。** 它是从 Claude Code 的程序里找到的。我们在 2.1.321 上实测管用，2.1.323 里也还在。哪天新版把它改掉了，不会报错，只会悄悄不起作用。怎么自查，写在[后面](#关于官方没写的那一项)。
+> 1. **这两项设置只管被拦以后的事。** 它们不会关掉任何安全检查：被拦的次数不会因此变少，误拦也照样会发生。这篇也不教怎么让被拦的内容「过审」。唯一的变化是：被拦以后，Claude Code 不再自己重试、自己换模型，停下来等你决定。
+> 2. **两项里有一项是官方文档没写的。** 它是从 Claude Code 的程序里找到的。我们在 2.1.321 上实测管用，2.1.323 里也还在。哪天新版把它改掉了，不会报错，只会悄悄不起作用。怎么自查，写在[后面](#关于官方没写的那一项)。
 > 3. **我们没有拿真账号去故意触发拦截。** 下面说的「被拦以后会看到什么」，是在一台假服务器上测的：让 Claude Code 以为自己被拦了，再看它怎么反应。哪些测过、哪些没测，见[我们测了什么](#我们测了什么没测什么)。
 
 > ### 🤖 如果你是被要求「照着做」的 Claude
 >
-> - 一般只需要做一件事：把三项设置合并进用户设置文件，照[下面那段话](#先说结论)的要求做。先备份，只加这三项，别动别的；有冲突先问。
+> - 一般只需要做一件事：把两项设置合并进用户设置文件，照[下面那段话](#先说结论)的要求做。先备份，只加这两项，别动别的；有冲突先问。
 > - 第 4 节「把被拦的那一轮带走」，只在用户明确指出是哪个会话、并确认那个会话已经关掉以后才做，照 [examples/prompt-remove-blocked-turn.md](examples/prompt-remove-blocked-turn.md) 的步骤来。**不要处理你自己现在所在的这个会话。**
 > - 不要为了验证设置有没有生效，去故意触发拦截。
 > - 第 2 节里的 `--settings` 参数和 SDK 代码，只给不读用户设置文件的套壳或程序用。别自己去改用户的套壳或代码，先问。
@@ -21,28 +21,27 @@
 
 ## 先说结论
 
-**已经有 `settings.json` 的，别拿下面这段把它整个替换掉，要把这三项合并进去。** 怎么合并，见[第 2 节](#怎么合并进你的设置文件)。
+**已经有 `settings.json` 的，别拿下面这段把它整个替换掉，要把这两项合并进去。** 怎么合并，见[第 2 节](#怎么合并进你的设置文件)。
 
-要加进用户设置文件 `~/.claude/settings.json` 的三项（`~` 指你的用户主文件夹，见[改哪个文件](#改哪个文件)）：
+要加进用户设置文件 `~/.claude/settings.json` 的两项（`~` 指你的用户主文件夹，见[改哪个文件](#改哪个文件)）：
 
 ```json
 {
   "switchModelsOnFlag": false,
   "env": {
-    "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1",
-    "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1"
+    "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1"
   }
 }
 ```
 
-改完把正在跑的 Claude Code 重开一次；用套壳的，把套壳重启一次。**重开不会丢聊天记录**：在原来启动的那个文件夹里输入 `claude --resume`，就能选回原来的会话。之后再被拦，不自动重试，不自动换模型，这一轮停在一段报错上，下一步你来定。
+改完把正在跑的 Claude Code 重开一次；用套壳的，把套壳重启一次。**重开不会丢聊天记录**：在原来启动的那个文件夹里输入 `claude --resume`，就能选回原来的会话。之后再被拦，不自动重试，不自动换模型，这一轮停在那里，下一步你来定：用 `-p`、stream-json 和套壳的，看到的是一段报错；在终端里，会弹一个框让你选，见[第 3 节](#3-关掉以后被拦会看到什么)。
 
 不想自己动手，就把下面这段发给你的 Claude。在终端里，它改文件之前会弹出权限确认，这是正常的；有的套壳里 Claude 没有改文件的权限，那就只能自己改。
 
 ```text
-请帮我把三项设置合并进我的 Claude Code 用户设置文件（一般是 ~/.claude/settings.json；如果设过 CLAUDE_CONFIG_DIR，就是那个目录下的 settings.json）：
+请帮我把两项设置合并进我的 Claude Code 用户设置文件（一般是 ~/.claude/settings.json；如果设过 CLAUDE_CONFIG_DIR，就是那个目录下的 settings.json）：
 1. 顶层加 "switchModelsOnFlag": false
-2. env 里加 "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1" 和 "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1"（值是带引号的 "1"）
+2. env 里加 "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1"（值是带引号的 "1"）
 
 要求：
 - 改之前先备份一份，备份的文件名后面加上日期。
@@ -51,10 +50,10 @@
 - 改完检查 JSON 格式没有错（不能有注释，最后一项后面不能有逗号），再告诉我改了什么。
 - 不用你重启 Claude Code。告诉我怎么重开、怎么回到现在这个会话就行。
 
-说明：这三项不会关掉安全检查，分类器照常工作，被拦的次数也不会变。它们只让 Claude Code 被拦以后停下来，不自动重试、不自动换模型，由我决定下一步。其中 CLAUDE_CODE_DISABLE_REFUSAL_RETRY 在官方文档里查不到，是这篇教程的作者在 Claude Code 2.1.321 的程序里看到的开关；名字里的 REFUSAL 指的就是「被拦」这件事。它要是不起作用，也不会报错。
+说明：这两项不会关掉安全检查，分类器照常工作，被拦的次数也不会变。它们只让 Claude Code 被拦以后停下来，不自动重试、不自动换模型，由我决定下一步。其中 CLAUDE_CODE_DISABLE_REFUSAL_RETRY 在官方文档里查不到，是这篇教程的作者在 Claude Code 2.1.321 的程序里看到的开关；名字里的 REFUSAL 指的就是「被拦」这件事。它要是不起作用，也不会报错。
 ```
 
-想改回去：删掉这三项，或者用备份恢复，再重开一次。
+想改回去：删掉这两项，或者用备份恢复，再重开一次。
 
 ---
 
@@ -91,8 +90,9 @@ Claude Code 旁边有安全分类器在看对话，觉得有风险，就把这�
 | 在 `settings.json` 里的写法 | 管什么 | 出处 |
 |---|---|---|
 | `"switchModelsOnFlag": false` | 被拦以后不自动换模型 | 官方[设置说明](https://code.claude.com/docs/en/settings-reference#switchmodelsonflag) |
-| `env` 里的 `"CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1"` | 跟上一项管同一件事，是环境变量的写法 | 官方[环境变量说明](https://code.claude.com/docs/en/env-vars) |
 | `env` 里的 `"CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1"` | **关掉同一个模型的自动重试**，那句英文就不会塞进来 | ⚠️ **官方文档没写**，见下面 |
+
+官方还有一个环境变量 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK`，跟第一项管同一件事。我们家没设它，这篇也不推荐，原因见[后面](#官方还有一个写法我们没设)。
 
 ### 关于官方没写的那一项
 
@@ -109,15 +109,23 @@ Claude Code 旁边有安全分类器在看对话，觉得有风险，就把这�
 - 这一次被拦时出现这句提示：`…safeguards stopped the response above · continuing once with that noted`。stream-json 里，它是一条 `system` 消息，`subtype` 为 `informational`。
 - 这一次被拦以后，会话存盘末尾新多出 `Your response above was stopped by a safety classifier` 这句话。
 
-存盘里早先就有的那句英文不算：那是改设置之前留下的，改了设置也不会自己消失（怎么清，见第 4 节）。真看到新出现的，说明这一次设置没生效：先查设置文件是不是改对了地方、套壳有没有带上这两个环境变量；这些都对，才可能是这个变量在新版里失效了。别为了自查去故意触发拦截。
+存盘里早先就有的那句英文不算：那是改设置之前留下的，改了设置也不会自己消失（怎么清，见第 4 节）。真看到新出现的，说明这一次设置没生效：先查设置文件是不是改对了地方、套壳有没有带上这个环境变量；这些都对，才可能是这个变量在新版里失效了。别为了自查去故意触发拦截。
 
 ### 为什么光关换模型不够
 
 自动重试和自动换模型是两个开关。只关换模型，同一个模型的自动重试照样发生，那句英文照样塞进来。我们在 2.1.321 上测过：只设 `switchModelsOnFlag: false`，被拦以后还是重试了一次；那次被拦之前模型已经说出了一部分，那句英文就留在了之后的对话里。
 
-### 为什么换模型要关两遍
+### 官方还有一个写法，我们没设
 
-`switchModelsOnFlag: false` 和 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK` 管的是同一件事，官方文档两处都写了。我们两个都设，是图个双保险：有人在官方仓库反馈，只设了 `switchModelsOnFlag: false` 还是被换了模型（[#103106](https://github.com/anthropics/claude-code/issues/103106)，官方也还没回复）。我们自己测的时候，有了 `switchModelsOnFlag: false`，多设这一项看不出区别。
+官方的[环境变量说明](https://code.claude.com/docs/en/env-vars)里还有一个 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK`，写的是跟 `switchModelsOnFlag: false` 管同一件事。我们家没设它，这篇也不推荐：
+
+- 有人在官方仓库报告（[#83043](https://github.com/anthropics/claude-code/issues/83043)，2.1.220 版）：设了它，反而会打开另一条不提示就换模型的路，正好跟它的本意相反。这个 issue 在 2026 年 9 月 6 日被标成 stale（长期没人跟进）关掉了，没有说修没修。
+- 我们在 2.1.321 的假服务器上把它和另外两项一起设过，没看到换模型。但那条路可能要真服务器才会触发，假服务器测不出来；新版里还有没有这个问题，我们没查。
+- 另一边，也有人反馈只设 `switchModelsOnFlag: false` 还是被换了模型（[#103106](https://github.com/anthropics/claude-code/issues/103106)，官方还没回复）。
+
+两边都没有定论。我们选了官方设置说明里的那个字段，环境变量这个不设。你已经设了的，留不留自己判断。
+
+不设它，看得见的区别在终端里：被拦的时候会弹一个框让你选，见[第 3 节](#3-关掉以后被拦会看到什么)。
 
 ### 改哪个文件
 
@@ -149,17 +157,16 @@ Claude Code 旁边有安全分类器在看对话，觉得有风险，就把这�
   "switchModelsOnFlag": false,
   "env": {
     "EXISTING_VAR": "原来的值",
-    "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1",
-    "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1"
+    "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1"
   }
 }
 ```
 
 - 改之前先复制一份备份。
-- `env` 只能有一个，新的两项加进原来那个里面。再写一个 `env`，前面那个可能会被悄悄吞掉。
+- `env` 只能有一个，新的这一项加进原来那个里面。再写一个 `env`，前面那个可能会被悄悄吞掉。
 - `"1"` 要带引号。
 - 设置文件是严格的 JSON：不能写注释，最后一项后面不能有逗号。写错了，Claude Code 下次启动时会报 Settings Error（[官方说明](https://code.claude.com/docs/en/settings)）。
-- 想改回去：删掉这三项，或者用备份恢复，再重开一次。
+- 想改回去：删掉这两项，或者用备份恢复，再重开一次。
 
 ### 放在哪
 
@@ -168,7 +175,7 @@ Claude Code 旁边有安全分类器在看对话，觉得有风险，就把这�
 **用 `-p` / stream-json 套壳聊天的**
 
 - 套壳拉起来的 `claude` 默认会读用户设置文件，写进去，再把套壳重启一次就行。
-- 如果你的套壳特意不读用户设置文件，可以在启动参数里直接传 `--settings '{"switchModelsOnFlag": false}'`，两个环境变量加在启动 `claude` 的那个进程的环境里。
+- 如果你的套壳特意不读用户设置文件，可以在启动参数里直接传 `--settings '{"switchModelsOnFlag": false}'`，`CLAUDE_CODE_DISABLE_REFUSAL_RETRY=1` 加在启动 `claude` 的那个进程的环境里。
 - 关掉以后，被拦的这一轮会以报错结束（见[下一节](#3-关掉以后被拦会看到什么)）。你的套壳要能把这个报错显示出来，别把它当成一句正常回复吞掉。
 - 套壳不是你自己写的，可以先问套壳作者三件事：
   1. 它拉起来的 `claude` 读不读用户设置文件？
@@ -188,7 +195,6 @@ const options = {
   env: {
     ...process.env, // TypeScript 的 env 会整个替换掉子进程的环境变量，一定要先把 process.env 展开
     CLAUDE_CODE_DISABLE_REFUSAL_RETRY: "1",
-    CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK: "1",
   },
 };
 ```
@@ -200,7 +206,6 @@ options = ClaudeAgentOptions(
     settings='{"switchModelsOnFlag": false}',
     env={
         "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1",
-        "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1",
     },
 )
 ```
@@ -210,13 +215,13 @@ SDK 的写法是照[官方文档](https://code.claude.com/docs/en/agent-sdk/type
 **在终端里直接聊的**
 
 - 写进用户设置文件，然后退出、重新打开 Claude Code。重开以后输入 `claude --resume` 选回原来的会话，或者用 `claude -c` 接上这个文件夹里最近的一个会话。
-- 换模型那一项也可以在 `/config` 里改：**Switch models when a message is flagged** 选 **Ask each time**，效果跟 `switchModelsOnFlag: false` 一样。两个环境变量没法在 `/config` 里设，还是要写进设置文件。
+- 换模型那一项也可以在 `/config` 里改：**Switch models when a message is flagged** 选 **Ask each time**，效果跟 `switchModelsOnFlag: false` 一样。自动重试那一项没法在 `/config` 里设，还是要写进设置文件。
 
 ---
 
 ## 3. 关掉以后，被拦会看到什么
 
-下面是三项都设了以后，在 Claude Code 2.1.321 上测到的。假服务器扮演的是 Opus 5.5；你用的模型不同，提示里的名字会跟着变。
+下面是在 Claude Code 2.1.321 上测到的。假服务器扮演的是 Opus 5.5；你用的模型不同，提示里的名字会跟着变。stream-json 只设两项、三项都设（多设了[上面那个环境变量](#官方还有一个写法我们没设)）都测过，事件完全一样；`-p` 纯文本和终端只在三项都设的时候测过，只设两项时的样子照官方文档写，分别标在下面。
 
 **stream-json**：只发一次请求，依次收到三条事件：
 
@@ -226,7 +231,7 @@ SDK 的写法是照[官方文档](https://code.claude.com/docs/en/agent-sdk/type
 
 ⚠️ 判断这一轮成没成功，要看 `is_error`，别只看 `subtype`。
 
-**`-p` 纯文本**：只发一次请求，打印下面这段报错，退出码是 1。被拦之前模型已经说出来的半句话，不会打印出来。
+**`-p` 纯文本**：只发一次请求，打印下面这段报错，退出码是 1。被拦之前模型已经说出来的半句话，不会打印出来。（这是三项都设时测的；官方文档写的是，只设 `switchModelsOnFlag: false` 时，`-p` 被拦也是直接报错。）
 
 ```
 API Error: Opus 5.5's safeguards flagged this session (https://www.anthropic.com/legal/aup). You may be seeing this for the first time: Opus 5.5 is more capable and has stronger safeguards as a result, which can sometimes flag non-cybersecurity work. We're improving these safeguards to reduce the amount of incorrectly flagged messages. Claude Code can't respond to your last message with Opus 5.5.
@@ -240,7 +245,9 @@ Try rephrasing the request in a new session or change your model.
 
 **SDK**：官方文档写的是，被拦的时候，结果消息的 `stop_reason` 是 `"refusal"`，通常 `subtype` 是 `"success"`、`is_error` 是 `true`；TypeScript 还会收到 `model_refusal_no_fallback` 这样的 system 消息（换了模型的话是 `model_refusal_fallback`）。这部分我们没在 SDK 里实跑。
 
-**终端**：不弹选择框，直接显示同样的报错，只是最后一句换成了：
+**终端**：只设这两项的时候，按官方文档，被拦以后终端会停下来，弹一个框让你选：换个模型接着聊，还是改了提示词再发（`/config` 里那一项叫 Ask each time，每次先问，说的就是这个）。⚠️ 框里有换模型的选项，看清楚再选，别顺手按回车；不想换模型，就选改提示词的那一项。这个框我们没在 2.1.321 上实测过。
+
+我们实测过的是三项都设的时候：不弹选择框，直接显示同样的报错，只是最后一句换成了：
 
 ```
 Double press esc to edit your last message, or try a different model with /model.
@@ -248,7 +255,7 @@ Double press esc to edit your last message, or try a different model with /model
 
 （大意：双击 Esc 回去改上一条消息，或者用 /model 换个模型。）
 
-你可能会奇怪：`/config` 里那一项明明叫 Ask each time（每次先问），怎么没问？官方文档说，只设 `switchModelsOnFlag: false` 的时候，终端会停下来，让你在「换模型」和「改提示词」之间选；官方文档也写了，没有备用模型可换的时候，不弹选择框，这一轮直接以拒绝结束。我们推断，三项都设以后不弹，是因为 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK` 让它没有备用模型可换了。只设 `switchModelsOnFlag: false` 的情况，我们没测。
+官方文档也写了，没有备用模型可换的时候，不弹选择框，这一轮直接以拒绝结束。我们推断，三项都设以后不弹，是因为第三项让它没有备用模型可换了。
 
 **如果你家 Claude 会派小工**（用 Agent 工具开出来的子任务）：官方文档写明，设成 `switchModelsOnFlag: false` 以后，小工被拦会直接失败，不会换模型接着跑（2.1.318 起）。
 
@@ -266,7 +273,7 @@ Double press esc to edit your last message, or try a different model with /model
 ### 你需要这一节吗
 
 - **最需要**：之前没关自动重试，而且被拦之前模型已经说出了一部分。那句英文已经在你的会话记录里，之后的对话会一直带着它。
-- **可选**：三项都设好以后再被拦，就不会有那句英文了，但被拦之前模型已经说出来的那半句，会留在之后的对话里。想让这一轮干干净净地消失，就用这一节；不在意的话，换个说法接着聊就行。
+- **可选**：两项都设好以后再被拦，就不会有那句英文了，但被拦之前模型已经说出来的那半句，会留在之后的对话里。想让这一轮干干净净地消失，就用这一节；不在意的话，换个说法接着聊就行。
 - **别用这一节，直接开新会话**：
   - 被拦的是会话里的第一条消息。删掉它等于从头开始，不如直接开新会话；一开新会话就被拦，见[第 5 节](#5-几句实话)第三条。
   - 被拦以后，这个会话压缩过（自动压缩也算）。被拦的内容可能已经写进了压缩出来的摘要里，删存盘里原来那几行不一定管用。
@@ -349,6 +356,7 @@ Double press esc to edit your last message, or try a different model with /model
 **测过的**
 
 - 三项都设：`-p`、stream-json、终端三种跑法，被拦都只发一次请求，不重试，不换模型。
+- 只设两项（`switchModelsOnFlag: false` + `CLAUDE_CODE_DISABLE_REFUSAL_RETRY`）：stream-json 测过，跟三项都设的事件完全一样，只发一次请求。
 - 只设 `switchModelsOnFlag: false`：还是会同模型重试一次；被拦前已经说出一部分的话，那句英文留在之后的对话里。
 - 关了自动重试以后被拦：被拦前已经说出来的半句，留在了下一轮的对话里。
 - 带走那一轮：被拦的是最后一轮、在中间且接链、在中间但不接链、会话开着的时候改，都用 `claude -p --resume` 续聊，看了实际发给模型的内容。
@@ -356,7 +364,8 @@ Double press esc to edit your last message, or try a different model with /model
 **没测的**
 
 - macOS 和 Windows。
-- 只设 `switchModelsOnFlag: false` 的时候，终端会不会弹选择框（官方文档说会）。
+- 只设两项时的 `-p` 纯文本和终端。官方文档说 `-p` 直接报错、终端会弹选择框，我们没在 2.1.321 上实测。
+- 第三项 `CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK` 在新版里会不会像 [#83043](https://github.com/anthropics/claude-code/issues/83043) 说的那样，打开另一条不提示就换模型的路。假服务器测不到这一条。
 - 终端里的 `claude --resume`。它读的是同一份存盘，按道理是一样的，但我们没单独测。
 - 用订阅账号登录时，报错文字会不会不一样（我们测的是 API key 计费的方式）。
 - 真的服务器拦截时，被拦之前会不会先吐出半句话。
