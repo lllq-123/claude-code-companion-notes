@@ -1,0 +1,7 @@
+{
+  "switchModelsOnFlag": false,
+  "env": {
+    "CLAUDE_CODE_DISABLE_REFUSAL_RETRY": "1",
+    "CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK": "1"
+  }
+}
