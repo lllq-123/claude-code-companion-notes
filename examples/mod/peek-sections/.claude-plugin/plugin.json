@@ -1,0 +1,5 @@
+{
+  "name": "peek-sections",
+  "version": "1.0.0",
+  "description": "示例：只读，把系统提示词每一节的名字和原文写进调试日志，什么都不改"
+}

@@ -1,0 +1,5 @@
+{
+  "name": "companion-basics",
+  "version": "1.0.0",
+  "description": "示例：把 Claude Code 写给模型的话里的 the user 换成你的名字，并可替换系统提示词里的一节"
+}
