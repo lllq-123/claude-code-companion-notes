@@ -1,4 +1,6 @@
 > 第二篇笔记：[让 Claude Code 叫你的名字：用 mod 换称呼、改系统提示词](notes/02-mod.md)。要装第二篇的 mod，直接看那一篇，跟下面第一篇的设置是两回事。
+>
+> 第三篇笔记：[只放你点过头的提醒进来：用 mod 给 Claude Code 的提醒做白名单](notes/03-allowlist.md)。同样是 mod，跟第二篇的可以一起挂。
 
 # 被拦以后，让 Claude Code 停下来
 

@@ -1,0 +1,5 @@
+{
+  "name": "reminder-allowlist",
+  "version": "1.0.0",
+  "description": "示例：给 Claude Code 自己塞给模型的提醒做白名单，名单上的照常发，名单外的先只看、你点了头再拦"
+}
